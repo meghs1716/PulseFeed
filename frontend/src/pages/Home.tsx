@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface Post {
   id: number;
@@ -13,20 +14,33 @@ interface Post {
   likeCount?: number;
 }
 
+interface SearchUser {
+  id: number;
+  username: string;
+  bio: string;
+}
+
+type FeedMode = "latest" | "forYou";
+
 function Home() {
   const navigate = useNavigate();
-const [searchQuery, setSearchQuery] = useState("");
-const [searchResults, setSearchResults] = useState<
-  { id: number; username: string; bio: string }[]
->([]);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [feedMode, setFeedMode] = useState<FeedMode>("latest");
+
   const getToken = () => localStorage.getItem("token");
 
+  // Load posts
   useEffect(() => {
     const loadPosts = async () => {
       const token = getToken();
@@ -38,7 +52,6 @@ const [searchResults, setSearchResults] = useState<
 
       try {
         const response = await fetch("http://localhost:8080/api/posts", {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -54,7 +67,7 @@ const [searchResults, setSearchResults] = useState<
           throw new Error(`Failed to load posts: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data: Post[] = await response.json();
         setPosts(data);
         setError("");
       } catch (err) {
@@ -65,50 +78,66 @@ const [searchResults, setSearchResults] = useState<
       }
     };
 
-    loadPosts();
+    void loadPosts();
   }, [navigate]);
-const handleSearch = async () => {
-  const token = localStorage.getItem("token");
 
-  if (!token) {
-    navigate("/login");
-    return;
-  }
+  // Search users
+  const handleSearch = async () => {
+    const token = getToken();
 
-  if (!searchQuery.trim()) {
-    setSearchResults([]);
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `http://localhost:8080/api/users/search?query=${encodeURIComponent(searchQuery.trim())}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Search failed (${response.status})`);
+    if (!token) {
+      navigate("/login");
+      return;
     }
 
-    setSearchResults(await response.json());
-  } catch (err) {
-    console.error("Search error:", err);
-    setError("Could not search users");
-  }
-};
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/users/search?query=${encodeURIComponent(
+          searchQuery.trim()
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Search failed (${response.status})`);
+      }
+
+      const data: SearchUser[] = await response.json();
+      setSearchResults(data);
+      setHasSearched(true);
+    } catch (err) {
+      console.error("Search error:", err);
+      setError("Could not search users.");
+    }
+  };
+
+  // Create post
   const handleCreatePost = async () => {
     if (!content.trim()) return;
 
     if (content.length > 280) {
-      setError("Post cannot exceed 280 characters");
+      setError("Post cannot exceed 280 characters.");
       return;
     }
 
     const token = getToken();
+
     if (!token) {
       navigate("/login");
       return;
@@ -129,19 +158,28 @@ const handleSearch = async () => {
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(data.message || "Failed to create post");
+        throw new Error(data.message || "Failed to create post.");
       }
 
       setPosts((current) => [data, ...current]);
       setContent("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create post");
+      setError(
+        err instanceof Error ? err.message : "Failed to create post."
+      );
     } finally {
       setPosting(false);
     }
   };
 
+  // Like or unlike a post
   const handleLike = async (postId: number) => {
     const token = getToken();
 
@@ -163,8 +201,14 @@ const handleSearch = async () => {
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(data.message || "Failed to like post");
+        throw new Error(data.message || "Failed to update like.");
       }
 
       setPosts((current) =>
@@ -178,62 +222,138 @@ const handleSearch = async () => {
             : post
         )
       );
+
       setError("");
     } catch (err) {
       console.error("Like error:", err);
-      setError("Could not update like");
+      setError(
+        err instanceof Error ? err.message : "Could not update like."
+      );
     }
   };
 
-const handleDeletePost = async (postId: number) => {
-  const token = localStorage.getItem("token");
+  // Delete a post
+  const handleDeletePost = async (postId: number) => {
+    const token = getToken();
 
-  if (!token) {
-    navigate("/login");
-    return;
-  }
-
-  if (!window.confirm("Are you sure you want to delete this post?")) {
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `http://localhost:8080/api/posts/${postId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Could not delete post (${response.status})`);
+    if (!token) {
+      navigate("/login");
+      return;
     }
 
-    setPosts((currentPosts) =>
-      currentPosts.filter((post) => post.id !== postId)
-    );
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
 
-    setError("");
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Could not delete post"
-    );
-  }
-};
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/posts/${postId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Could not delete post (${response.status}).`);
+      }
+
+      setPosts((current) =>
+        current.filter((post) => post.id !== postId)
+      );
+
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete post."
+      );
+    }
+  };
+
+  // Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  const formatDate = (date: string) => new Date(date).toLocaleString();
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleString();
+
+  // Calculate trending hashtags from loaded posts
+  const trendingTopics = (() => {
+    const counts = new Map<string, number>();
+
+    posts.forEach((post) => {
+      const hashtags = post.content.match(/#[a-zA-Z0-9_]+/g) ?? [];
+      const uniqueHashtags = new Set(
+        hashtags.map((tag) => tag.toLowerCase())
+      );
+
+      uniqueHashtags.forEach((tag) => {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      });
+    });
+
+    return Array.from(counts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort(
+        (a, b) =>
+          b.count - a.count || a.tag.localeCompare(b.tag)
+      )
+      .slice(0, 5);
+  })();
+
+  // Filter posts by selected hashtag
+  const visiblePosts = selectedTopic
+    ? posts.filter((post) =>
+        post.content.toLowerCase().includes(selectedTopic)
+      )
+    : posts;
+
+  // Rank posts for the For You feed
+  const rankedPosts = [...visiblePosts].sort((a, b) => {
+    if (feedMode === "latest") {
+      return (
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+      );
+    }
+
+    const score = (post: Post) => {
+      const createdTime = new Date(post.createdAt).getTime();
+      const ageHours = Number.isFinite(createdTime)
+        ? Math.max(0, (Date.now() - createdTime) / 3600000)
+        : 0;
+
+      return (10 + 2 * (post.likeCount ?? 0)) / (1 + ageHours);
+    };
+
+    const scoreDifference = score(b) - score(a);
+
+    // Use newest-first order when scores are equal
+    if (scoreDifference === 0) {
+      return (
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+      );
+    }
+
+    return scoreDifference;
+  });
 
   return (
     <div className="home-page">
       <nav className="navbar">
         <div className="logo">PulseFeed</div>
+
         <button className="logout-button" onClick={handleLogout}>
           Logout
         </button>
@@ -243,52 +363,107 @@ const handleDeletePost = async (postId: number) => {
         <aside className="sidebar left-sidebar">
           <h3>Menu</h3>
           <div className="sidebar-item">🏠 Home</div>
-          <div className="sidebar-item">🔥 Trending</div>
+          <div
+            className="sidebar-item"
+            onClick={() => {
+              document
+                .querySelector(".right-sidebar")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            🔥 Trending
+          </div>
           <div className="sidebar-item">👤 Profile</div>
           <div className="sidebar-item">⚙️ Settings</div>
         </aside>
 
         <main className="feed">
-          < div className="feed-header">
-<div className="user-search">
-  <form
-    className="user-search-form"
-    onSubmit={(e) => {
-      e.preventDefault();
-      void handleSearch();
-    }}
-  >
-    <input
-      type="text"
-      placeholder="Search people by username..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-    />
-    <button type="submit">Search</button>
-  </form>
+          <div className="feed-header">
+            <div className="user-search">
+              <form
+                className="user-search-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleSearch();
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="Search people by username..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setHasSearched(false);
+                  }}
+                />
 
-  {searchResults.length > 0 && (
-    <div className="user-search-results">
-      {searchResults.map((user) => (
-        <div className="user-search-result" key={user.id}>
-          <Link to={`/profile/${encodeURIComponent(user.username)}`}>
-            @{user.username}
-          </Link>
-          <p>{user.bio || "No bio yet"}</p>
-        </div>
-      ))}
-    </div>
-  )}
+                <button type="submit">Search</button>
+              </form>
 
-  {searchQuery.trim() && searchResults.length === 0 && (
-    <p style={{ color: "#aaa0ba", fontSize: 13 }}>
-      No matching users found.
-    </p>
-  )}
-</div>
+              {searchResults.length > 0 && (
+                <div className="user-search-results">
+                  {searchResults.map((user) => (
+                    <div
+                      className="user-search-result"
+                      key={user.id}
+                    >
+                      <Link
+                        to={`/profile/${encodeURIComponent(
+                          user.username
+                        )}`}
+                      >
+                        @{user.username}
+                      </Link>
+                      <p>{user.bio || "No bio yet"}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
+              {hasSearched && searchResults.length === 0 && (
+                <p style={{ color: "#aaa0ba", fontSize: 13 }}>
+                  No matching users found.
+                </p>
+              )}
+            </div>
 
-            <h2>Your Feed</h2>
+            <div>
+              <h2>
+                {selectedTopic
+                  ? `Trending: ${selectedTopic}`
+                  : "Your Feed"}
+              </h2>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
+                <button
+                  onClick={() => setFeedMode("latest")}
+                  disabled={feedMode === "latest"}
+                >
+                  Latest
+                </button>
+
+                <button
+                  onClick={() => setFeedMode("forYou")}
+                  disabled={feedMode === "forYou"}
+                >
+                  For You
+                </button>
+
+                {selectedTopic && (
+                  <button onClick={() => setSelectedTopic("")}>
+                    All Posts
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="create-post">
@@ -298,10 +473,12 @@ const handleDeletePost = async (postId: number) => {
               maxLength={280}
               onChange={(e) => setContent(e.target.value)}
             />
+
             <div className="create-post-footer">
               <span>{content.length}/280</span>
+
               <button
-                onClick={handleCreatePost}
+                onClick={() => void handleCreatePost()}
                 disabled={posting || !content.trim()}
               >
                 {posting ? "Posting..." : "Post"}
@@ -313,30 +490,40 @@ const handleDeletePost = async (postId: number) => {
 
           {loading ? (
             <div className="loading">Loading posts...</div>
-          ) : posts.length === 0 ? (
+          ) : rankedPosts.length === 0 ? (
             <div className="empty-feed">
-              <h3>No posts yet</h3>
-              <p>Be the first person to post on PulseFeed.</p>
+              <h3>
+                {selectedTopic ? "No posts for this topic" : "No posts yet"}
+              </h3>
+              <p>
+                {selectedTopic
+                  ? "Try another trending topic or view all posts."
+                  : "Be the first person to post on PulseFeed."}
+              </p>
             </div>
           ) : (
             <div className="posts-list">
-              {posts.map((post) => (
+              {rankedPosts.map((post) => (
                 <article className="post-card" key={post.id}>
                   <div className="post-header">
                     <div className="avatar">
-                      {post.user.username.charAt(0).toUpperCase()}
+                      {post.user?.username
+                        ?.charAt(0)
+                        .toUpperCase() ?? "?"}
                     </div>
 
                     <div>
                       <Link
-                        to={`/profile/${encodeURIComponent(post.user.username)}`}
+                        to={`/profile/${encodeURIComponent(
+                          post.user?.username ?? ""
+                        )}`}
                         style={{
                           color: "#bd99ff",
                           textDecoration: "none",
                           cursor: "pointer",
                         }}
                       >
-                        @{post.user.username}
+                        @{post.user?.username ?? "Unknown"}
                       </Link>
 
                       <div className="post-time">
@@ -349,17 +536,24 @@ const handleDeletePost = async (postId: number) => {
 
                   <div className="post-actions">
                     <button
-  onClick={() => handleDeletePost(post.id)}
-  style={{ color: "#ff6b6b" }}
->
-  🗑 Delete
-</button>
-                    <button onClick={() => handleLike(post.id)}>
+                      onClick={() => void handleDeletePost(post.id)}
+                      style={{ color: "#ff6b6b" }}
+                    >
+                      🗑 Delete
+                    </button>
+
+                    <button onClick={() => void handleLike(post.id)}>
                       {post.liked ? "❤️ Unlike" : "♡ Like"} (
                       {post.likeCount ?? 0})
                     </button>
-                    <button>💬 Comment</button>
-                    <button>↗ Share</button>
+
+                    <button disabled title="Comments are not implemented yet">
+                      💬 Comment
+                    </button>
+
+                    <button disabled title="Sharing is not implemented yet">
+                      ↗ Share
+                    </button>
                   </div>
                 </article>
               ))}
@@ -369,22 +563,37 @@ const handleDeletePost = async (postId: number) => {
 
         <aside className="sidebar right-sidebar">
           <h3>Trending</h3>
-          <div className="trend-item">
-            <span>#Technology</span>
-            <small>12.4K posts</small>
-          </div>
-          <div className="trend-item">
-            <span>#AI</span>
-            <small>9.8K posts</small>
-          </div>
-          <div className="trend-item">
-            <span>#Programming</span>
-            <small>7.2K posts</small>
-          </div>
-          <div className="trend-item">
-            <span>#WebDevelopment</span>
-            <small>5.9K posts</small>
-          </div>
+
+          {trendingTopics.length === 0 ? (
+            <p style={{ color: "#aaa0ba", fontSize: 13 }}>
+              No hashtags yet. Try posting #AI or #Programming!
+            </p>
+          ) : (
+            trendingTopics.map((topic) => (
+              <div className="trend-item" key={topic.tag}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTopic(topic.tag)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#bd99ff",
+                    cursor: "pointer",
+                    padding: 0,
+                    font: "inherit",
+                    textAlign: "left",
+                  }}
+                >
+                  {topic.tag}
+                </button>
+
+                <small>
+                  {topic.count}{" "}
+                  {topic.count === 1 ? "post" : "posts"}
+                </small>
+              </div>
+            ))
+          )}
         </aside>
       </div>
     </div>

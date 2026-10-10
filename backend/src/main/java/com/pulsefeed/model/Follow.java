@@ -9,8 +9,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 @Entity
 @Table(
     name = "follows",
@@ -20,6 +22,7 @@ import jakarta.persistence.UniqueConstraint;
         )
     }
 )
+
 public class Follow {
 
     @Id
@@ -38,7 +41,12 @@ public class Follow {
 private LocalDateTime createdAt;
     public Follow() {
     }
-
+@PrePersist
+protected void onCreate() {
+    if (createdAt == null) {
+        createdAt = LocalDateTime.now();
+    }
+}
   public Follow(User follower, User following) {
     this.follower = follower;
     this.following = following;

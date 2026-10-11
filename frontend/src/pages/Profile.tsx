@@ -36,7 +36,7 @@ const handleSaveBio = async () => {
   setError("");
 
   try {
-    const response = await fetch("http://localhost:8080/api/users/me", {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -77,7 +77,7 @@ const handleSaveBio = async () => {
 
       try {
         const response = await fetch(
-          `http://localhost:8080/api/users/${encodeURIComponent(username)}`,
+          `${import.meta.env.VITE_API_URL}/api/users/${encodeURIComponent(username)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -125,7 +125,7 @@ const handleSaveBio = async () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/${profile.id}/follow`,
+        `${import.meta.env.VITE_API_URL}/api/users/${profile.id}/follow`,
         {
           method: "POST",
           headers: {
@@ -147,7 +147,7 @@ const handleSaveBio = async () => {
 
       // Reload the profile so counts and follow status match the database.
       const profileResponse = await fetch(
-        `http://localhost:8080/api/users/${encodeURIComponent(profile.username)}`,
+        `${import.meta.env.VITE_API_URL}/api/users/${encodeURIComponent(profile.username)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

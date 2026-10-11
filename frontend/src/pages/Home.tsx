@@ -51,7 +51,7 @@ function Home() {
       }
 
       try {
-        const response = await fetch("http://localhost:8080/api/posts", {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -98,7 +98,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/users/search?query=${encodeURIComponent(
+        `${import.meta.env.VITE_API_URL}/api/users/search?query=${encodeURIComponent(
           searchQuery.trim()
         )}`,
         {
@@ -147,7 +147,7 @@ function Home() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8080/api/posts", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}api/posts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +190,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/posts/${postId}/like`,
+        `${import.meta.env.VITE_API_URL}/api/posts/${postId}/like`,
         {
           method: "POST",
           headers: {
@@ -247,7 +247,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/posts/${postId}`,
+        `${import.meta.env.VITE_API_URL}/api/posts/${postId}`,
         {
           method: "DELETE",
           headers: {

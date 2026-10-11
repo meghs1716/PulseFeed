@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Register() {
   const navigate = useNavigate();
+  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -19,7 +20,7 @@ function Register() {
     try {
       console.log("API URL:", import.meta.env.VITE_API_URL);
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/register`,
+        `${API_BASE_URL}/api/auth/register`,
         {
           method: "POST",
           headers: {

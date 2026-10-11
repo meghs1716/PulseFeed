@@ -24,6 +24,7 @@ type FeedMode = "latest" | "forYou";
 
 function Home() {
   const navigate = useNavigate();
+  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
@@ -51,7 +52,7 @@ function Home() {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
+        const response = await fetch(`${API_BASE_URL}/api/posts`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -98,7 +99,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/users/search?query=${encodeURIComponent(
+        `${API_BASE_URL}/api/users/search?query=${encodeURIComponent(
           searchQuery.trim()
         )}`,
         {
@@ -147,7 +148,7 @@ function Home() {
     setError("");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}api/posts`, {
+      const response = await fetch(`${API_BASE_URL}api/posts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +191,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/posts/${postId}/like`,
+        `${API_BASE_URL}/api/posts/${postId}/like`,
         {
           method: "POST",
           headers: {
@@ -247,7 +248,7 @@ function Home() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/posts/${postId}`,
+        `${API_BASE_URL}/api/posts/${postId}`,
         {
           method: "DELETE",
           headers: {

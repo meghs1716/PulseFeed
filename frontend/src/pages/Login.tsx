@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
   const navigate = useNavigate();
+  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +17,7 @@ function Login() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        `${API_BASE_URL}/api/auth/login`,
         {
           method: "POST",
           headers: {

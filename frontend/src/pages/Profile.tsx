@@ -13,6 +13,7 @@ interface ProfileData {
 }
 
 function Profile() {
+  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const [editingBio, setEditingBio] = useState(false);
@@ -36,7 +37,7 @@ const handleSaveBio = async () => {
   setError("");
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -77,7 +78,7 @@ const handleSaveBio = async () => {
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/users/${encodeURIComponent(username)}`,
+          `${API_BASE_URL}/api/users/${encodeURIComponent(username)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -125,7 +126,7 @@ const handleSaveBio = async () => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/users/${profile.id}/follow`,
+        `${API_BASE_URL}/api/users/${profile.id}/follow`,
         {
           method: "POST",
           headers: {
@@ -147,7 +148,7 @@ const handleSaveBio = async () => {
 
       // Reload the profile so counts and follow status match the database.
       const profileResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/users/${encodeURIComponent(profile.username)}`,
+        `${API_BASE_URL}/api/users/${encodeURIComponent(profile.username)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

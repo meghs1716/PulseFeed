@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 function Register() {
   const navigate = useNavigate();
-  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -18,7 +18,6 @@ function Register() {
     setLoading(true);
 
     try {
-      console.log("API URL:", import.meta.env.VITE_API_URL);
       const response = await fetch(
         `${API_BASE_URL}/api/auth/register`,
         {
@@ -27,10 +26,10 @@ function Register() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: username,
-            email: email,
+            username: username.trim(),
+            email: email.trim(),
             password: password,
-            bio: bio,
+            bio: bio.trim(),
           }),
         }
       );
@@ -43,11 +42,13 @@ function Register() {
         );
       }
 
-      // Save JWT token
+      // Save JWT token and user info
       localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username || username.trim());
+      localStorage.setItem("email", data.email || email.trim());
 
       // Go to Home page
-      navigate("/home");
+      navigate("/");
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

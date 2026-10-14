@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 interface ProfileData {
   id: number;
@@ -13,7 +14,6 @@ interface ProfileData {
 }
 
 function Profile() {
-  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const [editingBio, setEditingBio] = useState(false);

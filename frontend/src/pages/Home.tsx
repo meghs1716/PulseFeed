@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 interface Post {
   id: number;
@@ -24,7 +25,6 @@ type FeedMode = "latest" | "forYou";
 
 function Home() {
   const navigate = useNavigate();
-  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState("");
@@ -148,7 +148,7 @@ function Home() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}api/posts`, {
+      const response = await fetch(`${API_BASE_URL}/api/posts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -282,6 +282,8 @@ function Home() {
   // Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
     navigate("/login");
   };
 
@@ -363,7 +365,7 @@ function Home() {
       <div className="home-layout">
         <aside className="sidebar left-sidebar">
           <h3>Menu</h3>
-          <div className="sidebar-item">🏠 Home</div>
+          <div className="sidebar-item" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>🏠 Home</div>
           <div
             className="sidebar-item"
             onClick={() => {
@@ -375,7 +377,18 @@ function Home() {
           >
             🔥 Trending
           </div>
-          <div className="sidebar-item">👤 Profile</div>
+          <div
+            className="sidebar-item"
+            onClick={() => {
+              const currentUsername = localStorage.getItem("username");
+              if (currentUsername) {
+                navigate(`/profile/${encodeURIComponent(currentUsername)}`);
+              }
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            👤 Profile
+          </div>
           <div className="sidebar-item">⚙️ Settings</div>
         </aside>
 

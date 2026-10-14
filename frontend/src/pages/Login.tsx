@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 function Login() {
   const navigate = useNavigate();
-  const API_BASE_URL = "https://pulsefeed-backend-ofst.onrender.com";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +24,7 @@ function Login() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: email,
+            email: email.trim(),
             password: password,
           }),
         }
@@ -36,11 +36,17 @@ function Login() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Save JWT token
+      // Save JWT token and user info
       localStorage.setItem("token", data.token);
+      if (data.username) {
+        localStorage.setItem("username", data.username);
+      }
+      if (data.email) {
+        localStorage.setItem("email", data.email);
+      }
 
       // Go to Home page
-      navigate("/home");
+      navigate("/");
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

@@ -48,7 +48,9 @@ public class AuthController {
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Registration successful",
-                            "token", token
+                            "token", token,
+                            "username", request.getUsername().trim(),
+                            "email", request.getEmail().trim()
                     )
             );
 
@@ -75,11 +77,19 @@ public class AuthController {
         try {
 
             String token = authService.login(request);
+            User user = userRepository
+                    .findByEmail(request.getEmail().trim())
+                    .orElse(null);
+
+            String username = user != null ? user.getUsername() : "";
+            String email = user != null ? user.getEmail() : request.getEmail().trim();
 
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Login successful",
-                            "token", token
+                            "token", token,
+                            "username", username,
+                            "email", email
                     )
             );
 
